@@ -1,144 +1,152 @@
 import random
 import tkinter as tk
 
-# Timetable matrix (5 days, 7 periods per day)
-DAYS = 5
-PERIODS_PER_DAY = 7
-timetable_matrix = [[0 for _ in range(PERIODS_PER_DAY)] for _ in range(DAYS)]
+# 5 days, 7 periods per day
+matrix = [[0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0, 0]]
 
-# Class schedule with total theory and lab sessions per week
+# Total theory and lab sessions per week
 class_schedule = {
-    "Math_Lab": 1,
-    "Python_Lab": 1,
-    "Python_Theory": 2,
-    "Material_Science_Lab": 1,
-    "Material_Science_Theory": 2,
-    "Design_Lab": 1,
-    "Design_Theory": 2,
-    "Actuators_Drives_Theory": 3,
-    "Mechanisms&Machines_Lab": 1,
-    "Mechanisms&Machines_Theory": 3,
-    "Microcontrollers_Lab": 1,
-    "Microcontrollers_Theory": 3,
-    "LSE": 3,
-    "Mahabharata": 1,
-    "Math": 3,
-    "Library": 1
+    "Math": [3, 1],
+    "Python": [1, 1],
+    "Material_Science": [2, 1],
+    "Design": [1, 1],
+    "Actuators_Drives": [3, 0],
+    "Mechanisms&Machines": [3, 1],
+    "Microcontrollers": [3, 1],
+    "LSE": [3, 0],
+    "Mahabharata": [1, 0],
+    "Library": [1, 0]
 }
 
-# Define labs
-lab_list = ["Python_Lab", "Material_Science_Lab", "Design_Lab", "Mechanisms&Machines_Lab", "Microcontrollers_Lab", "Math_Lab"]
+# Generate lablist by adding "_Lab" to subjects that have labs
+lablist = [subject + "_Lab" for subject, counts in class_schedule.items() if counts[1] > 0]
+def generate_timetable(matrix, class_schedule, lablist):
+# Randomly assign classes to periods while tracking counts
+    for j in range(5):  # For each day
+        i = 0
+        while i < 7:  # For each period in a day
+            # Filter out classes with no remaining sessions
+            available_classes = [cls for cls, counts in class_schedule.items() if counts[0] > 0 or counts[1] > 0]
+            print(available_classes)
+            if not available_classes:
+                break  # Stop if there are no more classes to schedule
 
-# Color dictionary for each class
-color_dict = {
-    "Python_Lab": "lightblue",
-    "Python_Theory": "blue",
-    "Material_Science_Lab": "lightgreen",
-    "Material_Science_Theory": "green",
-    "Design_Lab": "lightpink",
-    "Design_Theory": "pink",
-    "Actuators_Drives_Theory": "yellow",
-    "Mechanisms&Machines_Lab": "lightgray",
-    "Mechanisms&Machines_Theory": "gray",
-    "Microcontrollers_Lab": "lightcoral",
-    "Microcontrollers_Theory": "coral",
-    "LSE": "orange",
-    "Mahabharata": "purple",
-    "Math": "brown",
-    "Math_Lab": "black"
-}
-
-# Constraint for lab periods
-LAB_PERIOD_SLOTS = [(0, 3), (3, 2), (5, 2)]
-
-# Function to get available classes
-def get_available_classes():
-    return [cls for cls, count in class_schedule.items() if count > 0]
-
-# Function to assign labs to appropriate slots
-def assign_lab(day, period):
-    available_labs = [lab for lab in lab_list if class_schedule[lab] > 0]
-    
-    # If no labs are available, return 0 (no lab assigned)
-    if not available_labs:
-        return 0
-
-    for lab, duration in LAB_PERIOD_SLOTS:
-        if period == lab and period + duration <= PERIODS_PER_DAY:
-            chosen_lab = random.choice(available_labs)
-            for p in range(duration):
-                timetable_matrix[day][period + p] = chosen_lab
-            class_schedule[chosen_lab] -= 1
-            return duration
-    return 0
-
-# Function to assign theory classes
-def assign_theory(day, period):
-    available_classes = get_available_classes()
-    chosen_class = random.choice(available_classes)
-    timetable_matrix[day][period] = chosen_class
-    class_schedule[chosen_class] -= 1
-
-# Function to populate the timetable matrix
-def populate_timetable():
-    for day in range(DAYS):
-        period = 0
-        while period < PERIODS_PER_DAY:
-            if period in [0, 3, 5]:  # Only assign labs in certain slots
-                lab_duration = assign_lab(day, period)
-                if lab_duration > 0:
-                    period += lab_duration
+            choice = random.choice(available_classes)  # Choose a random class
+            is_lab = False
+            # Check if it's a lab
+            if class_schedule[choice][1] > 0:
+                is_lab = True
+            
+            if is_lab:
+                # Schedule lab sessions (spanning multiple periods)
+                if i == 0:  # Labs can only be placed in first, fourth, or sixth periods
+                    matrix[j][i] = matrix[j][i + 1] = matrix[j][i + 2] = choice + "_Lab"
+                    class_schedule[choice][1] -= 1  # Reduce lab count after scheduling
+                    if class_schedule[choice][1] == 0 and class_schedule[choice][0] == 0:
+                        del class_schedule[choice]  # Remove class if both counts are zero
+                    i += 3
+                elif i == 3:
+                    if matrix[j][0] not in lablist:
+                        matrix[j][i] = matrix[j][i + 1] = choice + "_Lab"
+                        class_schedule[choice][1] -= 1
+                        if class_schedule[choice][1] == 0 and class_schedule[choice][0] == 0:
+                            del class_schedule[choice]
+                        i += 2
+                elif i == 5:
+                    if matrix[j][3] not in lablist:
+                        matrix[j][i] = matrix[j][i + 1] = choice + "_Lab"
+                        class_schedule[choice][1] -= 1
+                        if class_schedule[choice][1] == 0 and class_schedule[choice][0] == 0:
+                            del class_schedule[choice]
+                        i += 2
+                else:
                     continue
-            assign_theory(day, period)
-            period += 1
+            else:
+                # Schedule theory class
+                matrix[j][i] = choice  # Place theory class
+                class_schedule[choice][0] -= 1  # Reduce theory count
+                if class_schedule[choice][0] == 0 and class_schedule[choice][1] == 0:
+                    del class_schedule[choice]  # Remove class if both counts are zero)
+                i += 1
+    remaining_classes = [cls for cls, counts in class_schedule.items() if counts[0] > 0 or counts[1] > 0]
+    print("The remaining classes are:")
+    print(remaining_classes)
+    return matrix
+MatA=generate_timetable(matrix, class_schedule, lablist)
+def create_timetable_gui(matrix):
+    # Color dictionary for each class
+    color_dict = {
+        "Python_Lab": "lightblue",
+        "Python": "blue",
+        "Material_Science_Lab": "lightgreen",
+        "Material_Science": "green",
+        "Design_Lab": "lightpink",
+        "Design": "pink",
+        "Actuators_Drives": "yellow",
+        "Mechanisms&Machines_Lab": "lightgray",
+        "Mechanisms&Machines": "gray",
+        "Microcontrollers_Lab": "lightcoral",
+        "Microcontrollers": "coral",
+        "LSE": "orange",
+        "Mahabharata": "purple",
+        "Math": "brown",
+        "Math_Lab": "gray",
+        "Library": "red"
+    }
 
-# Function to create the timetable in a Tkinter GUI
-def create_gui():
+    # Create a Tkinter window
     root = tk.Tk()
     root.title("Timetable")
-    
+
+    # Days and periods headers
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     periods = ["1", "2", "3", "4", "5", "6", "7"]
 
     # Create headers for days and periods
     for i, day in enumerate(days):
         label = tk.Label(root, text=day, relief=tk.RAISED)
-        label.grid(row=i+1, column=0, sticky="nsew")
+        label.grid(row=i + 1, column=0, sticky="nsew")
 
     for i, period in enumerate(periods):
         label = tk.Label(root, text=period, relief=tk.RAISED)
-        label.grid(row=0, column=i+1, sticky="nsew")
+        label.grid(row=0, column=i + 1, sticky="nsew")
 
+    # Keep track of already spanned cells
     spanned_cells = set()
 
-    # Fill in the timetable matrix
-    for day in range(DAYS):
-        period = 0
-        while period < PERIODS_PER_DAY:
-            subject = timetable_matrix[day][period]
+    # Fill in the timetable with the classes and colors
+    for i in range(5):  # Days
+        j = 0  # Periods
+        while j < 7:
+            subject = matrix[i][j]
+
             if subject == 0:
                 label = tk.Label(root, text="", relief=tk.RAISED, width=12, height=4)
-                label.grid(row=day+1, column=period+1, sticky="nsew")
-                period += 1
-            elif (day, period) not in spanned_cells:
-                color = color_dict.get(subject, "white")
-                if period+2 < PERIODS_PER_DAY and timetable_matrix[day][period] == timetable_matrix[day][period+1] == timetable_matrix[day][period+2]:
+                label.grid(row=i + 1, column=j + 1, sticky="nsew")
+                j += 1  # Move to the next period
+            elif (i, j) not in spanned_cells:  # Check if this cell is part of a previously spanned cell
+                color = color_dict.get(subject, "white")  # Default to white if not found in color_dict
+
+                # Check if the subject spans multiple periods (i.e., lab)
+                if j + 2 < 7 and matrix[i][j] == matrix[i][j + 1] == matrix[i][j + 2]:  # Lab spanning 3 periods
                     label = tk.Label(root, text=subject, bg=color, relief=tk.RAISED, width=36, height=4)
-                    label.grid(row=day+1, column=period+1, columnspan=3, sticky="nsew")
-                    spanned_cells.update([(day, period), (day, period+1), (day, period+2)])
-                    period += 3
-                elif period+1 < PERIODS_PER_DAY and timetable_matrix[day][period] == timetable_matrix[day][period+1]:
+                    label.grid(row=i + 1, column=j + 1, columnspan=3, sticky="nsew")
+                    spanned_cells.update([(i, j), (i, j + 1), (i, j + 2)])  # Mark these cells as spanned
+                    j += 3  # Move forward by 3 periods
+                elif j + 1 < 7 and matrix[i][j] == matrix[i][j + 1]:  # Lab spanning 2 periods
                     label = tk.Label(root, text=subject, bg=color, relief=tk.RAISED, width=24, height=4)
-                    label.grid(row=day+1, column=period+1, columnspan=2, sticky="nsew")
-                    spanned_cells.update([(day, period), (day, period+1)])
-                    period += 2
-                else:
+                    label.grid(row=i + 1, column=j + 1, columnspan=2, sticky="nsew")
+                    spanned_cells.update([(i, j), (i, j + 1)])  # Mark these cells as spanned
+                    j += 2  # Move forward by 2 periods
+                else:  # Single period class (theory)
                     label = tk.Label(root, text=subject, bg=color, relief=tk.RAISED, width=12, height=4)
-                    label.grid(row=day+1, column=period+1, sticky="nsew")
-                    period += 1
+                    label.grid(row=i + 1, column=j + 1, sticky="nsew")
+                    j += 1  # Move to the next period
 
+    # Run the application
     root.mainloop()
-
-# Generate timetable and display it
-populate_timetable()
-create_gui()
+create_timetable_gui(MatA)

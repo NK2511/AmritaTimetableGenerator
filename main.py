@@ -115,7 +115,7 @@ class Solver:
 
             for _ in range(theory):
                 s = Slot(ClassType.THEORY, current_day, current_slot)
-                self.timetable.add_clas0s(Subject(subject_code, 'professor_code'), s)
+                self.timetable.add_class(Subject(subject_code, 'professor_code'), s)
 
                 current_slot += 1
 

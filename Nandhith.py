@@ -45,7 +45,7 @@ color_dict = {
     "LSE": "orange",
     "Mahabharata": "purple",
     "Math": "brown",
-    "Math_Lab": "gray"
+    "Math_Lab": "black"
 }
 
 # Constraint for lab periods
@@ -71,7 +71,6 @@ def assign_lab(day, period):
             class_schedule[chosen_lab] -= 1
             return duration
     return 0
-
 
 # Function to assign theory classes
 def assign_theory(day, period):
